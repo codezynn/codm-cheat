@@ -1,0 +1,29 @@
+name: Build Zygisk Module
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26b
+      - name: Build
+        env:
+          NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          $NDK_ROOT/ndk-build NDK_PROJECT_PATH=$PWD APP_BUILD_SCRIPT=$PWD/zygisk/Android.mk NDK_APPLICATION_MK=$PWD/zygisk/Application.mk NDK_LIBS_OUT=$PWD/libs NDK_OUT=$PWD/obj -j$(nproc)
+      - name: Package
+        run: |
+          mkdir -p out/zygisk
+          cp -r META-INF module.prop service.sh activate_skin_unlock.sh deactivate_skin_unlock.sh README.md out/
+          cp libs/arm64-v8a/libcodm_skin.so out/zygisk/arm64-v8a.so
+          cd out && zip -r9 ../CODM_Skin_Unlock_Zygisk_1.6.57.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CODM_Skin_Unlock_Zygisk_1.6.57
+          path: CODM_Skin_Unlock_Zygisk_1.6.57.zip
